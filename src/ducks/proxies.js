@@ -7,7 +7,7 @@ import { getClashAPIConfig } from 'd/app';
 // const ProxyTypeBuiltin = ['DIRECT', 'GLOBAL', 'REJECT'];
 // const ProxyGroupTypes = ['Fallback', 'URLTest', 'Selector', 'LoadBalance'];
 
-const ProxyTypes = ['Shadowsocks', 'Snell', 'Socks5', 'Http', 'Vmess'];
+const ProxyTypes = ['Shadowsocks','ShadowsocksR', 'Snell', 'Socks5', 'Http', 'Vmess'];
 
 export const getProxies = s => s.proxies.proxies;
 export const getDelay = s => s.proxies.delay;
@@ -156,7 +156,7 @@ export function requestDelayAll() {
     const keys = Object.keys(proxies);
     const proxyNames = [];
     keys.forEach(k => {
-      if (proxies[k].type === 'Vmess' || proxies[k].type === 'Shadowsocks') {
+      if (proxies[k].type === 'Vmess' || proxies[k].type === 'Shadowsocks'||proxies[k].type === 'ShadowsocksR') {
         proxyNames.push(k);
       }
     });

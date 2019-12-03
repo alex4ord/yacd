@@ -16,6 +16,7 @@ const colors = {
   Selector: '#387cec',
   Vmess: '#ca3487',
   Shadowsocks: '#1a7dc0',
+  ShadowsocksR: '#d3782d',
   Socks5: '#2a477a',
   URLTest: '#3483e8',
   Http: '#d3782d'
