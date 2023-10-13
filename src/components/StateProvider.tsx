@@ -1,21 +1,15 @@
-import produce, * as immer from 'immer';
-import React from 'react';
+import * as immer from 'immer';
+import React, { ReactNode } from 'react';
+
+import { State } from '$src/store/types';
 
 // in logs store we update logs in place
 // outside of immer produce
 // this is just workaround
 immer.setAutoFreeze(false);
 
-const {
-  createContext,
-  memo,
-  useMemo,
-  useRef,
-  useEffect,
-  useCallback,
-  useContext,
-  useState,
-} = React;
+const { createContext, memo, useMemo, useRef, useEffect, useCallback, useContext, useState } =
+  React;
 
 export { immer };
 
@@ -36,7 +30,15 @@ export function useStoreActions() {
 }
 
 // boundActionCreators
-export default function Provider({ initialState, actions = {}, children }) {
+export default function Provider({
+  initialState,
+  actions = {},
+  children,
+}: {
+  initialState: Partial<State>;
+  actions: any;
+  children: ReactNode;
+}) {
   const stateRef = useRef(initialState);
   const [state, setState] = useState(initialState);
   const getState = useCallback(() => stateRef.current, []);
@@ -46,10 +48,10 @@ export default function Provider({ initialState, actions = {}, children }) {
     }
   }, [getState]);
   const dispatch = useCallback(
-    (actionId, fn) => {
+    (actionId: string | ((a: any, b: any) => any), fn: (s: any) => void) => {
       if (typeof actionId === 'function') return actionId(dispatch, getState);
 
-      const stateNext = produce(getState(), fn);
+      const stateNext = immer.produce(getState(), fn);
       if (stateNext !== stateRef.current) {
         if (process.env.NODE_ENV === 'development') {
           // eslint-disable-next-line no-console
@@ -59,28 +61,23 @@ export default function Provider({ initialState, actions = {}, children }) {
         setState(stateNext);
       }
     },
-    [getState]
+    [getState],
   );
-  const boundActions = useMemo(() => bindActions(actions, dispatch), [
-    actions,
-    dispatch,
-  ]);
+  const boundActions = useMemo(() => bindActions(actions, dispatch), [actions, dispatch]);
 
   return (
     <StateContext.Provider value={state}>
       <DispatchContext.Provider value={dispatch}>
-        <ActionsContext.Provider value={boundActions}>
-          {children}
-        </ActionsContext.Provider>
+        <ActionsContext.Provider value={boundActions}>{children}</ActionsContext.Provider>
       </DispatchContext.Provider>
     </StateContext.Provider>
   );
 }
 
-export function connect(mapStateToProps) {
-  return (Component) => {
+export function connect(mapStateToProps: any) {
+  return (Component: any) => {
     const MemoComponent = memo(Component);
-    function Connected(props) {
+    function Connected(props: any) {
       const state = useContext(StateContext);
       const dispatch = useContext(DispatchContext);
       const mapped = mapStateToProps(state, props);
@@ -92,14 +89,13 @@ export function connect(mapStateToProps) {
 }
 
 // steal from https://github.com/reduxjs/redux/blob/master/src/bindActionCreators.ts
-function bindAction(action, dispatch) {
-  return function (...args) {
-    // @ts-expect-error ts-migrate(2683) FIXME: 'this' implicitly has type 'any' because it does n... Remove this comment to see the full error message
+function bindAction(action: any, dispatch: any) {
+  return function (...args: any[]) {
     return dispatch(action.apply(this, args));
   };
 }
 
-function bindActions(actions, dispatch) {
+function bindActions(actions: any, dispatch: any) {
   const boundActions = {};
   for (const key in actions) {
     const action = actions[key];

@@ -1,13 +1,9 @@
 import * as React from 'react';
-import ContentHeader from 'src/components/ContentHeader';
+import { ContentHeader } from 'src/components/ContentHeader';
 import { ProxyProvider } from 'src/components/proxies/ProxyProvider';
 import { FormattedProxyProvider } from 'src/store/types';
 
-export function ProxyProviderList({
-  items,
-}: {
-  items: FormattedProxyProvider[];
-}) {
+export function ProxyProviderList({ items }: { items: FormattedProxyProvider[] }) {
   if (items.length === 0) return null;
 
   return (

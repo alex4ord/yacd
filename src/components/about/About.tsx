@@ -1,25 +1,13 @@
+import { useQuery } from '@tanstack/react-query';
 import * as React from 'react';
-import { GitHub } from 'react-feather';
-import { useQuery } from 'react-query';
 import { fetchVersion } from 'src/api/version';
-import ContentHeader from 'src/components/ContentHeader';
-import { connect } from 'src/components/StateProvider';
-import { getClashAPIConfig } from 'src/store/app';
-import { ClashAPIConfig } from 'src/types';
+import { ContentHeader } from 'src/components/ContentHeader';
+import { useApiConfig } from 'src/store/app';
 
+import { GitHubIcon } from '../icon/GitHubIcon';
 import s from './About.module.scss';
 
-type Props = { apiConfig: ClashAPIConfig };
-
-function Version({
-  name,
-  link,
-  version,
-}: {
-  name: string;
-  link: string;
-  version: string;
-}) {
+function Version({ name, link, version }: { name: string; link: string; version: string }) {
   return (
     <div className={s.root}>
       <h2>{name}</h2>
@@ -28,13 +16,8 @@ function Version({
         <span className={s.mono}>{version}</span>
       </p>
       <p>
-        <a
-          className={s.link}
-          href={link}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <GitHub size={20} />
+        <a className={s.link} href={link} target="_blank" rel="noopener noreferrer">
+          <GitHubIcon size={20} />
           <span>Source</span>
         </a>
       </p>
@@ -42,31 +25,16 @@ function Version({
   );
 }
 
-function AboutImpl(props: Props) {
-  const { data: version } = useQuery(['/version', props.apiConfig], () =>
-    fetchVersion('/version', props.apiConfig)
-  );
+export function About() {
+  const apiConfig = useApiConfig();
+  const { data: version } = useQuery(['/version', apiConfig], fetchVersion);
   return (
     <>
       <ContentHeader title="About" />
       {version && version.version ? (
-        <Version
-          name="Clash"
-          version={version.version}
-          link="https://github.com/Dreamacro/clash"
-        />
+        <Version name="Clash" version={version.version} link="https://github.com/Dreamacro/clash" />
       ) : null}
-      <Version
-        name="Yacd"
-        version={__VERSION__}
-        link="https://github.com/haishanh/yacd"
-      />
+      <Version name="Yacd" version={__VERSION__} link="https://github.com/haishanh/yacd" />
     </>
   );
 }
-
-const mapState = (s) => ({
-  apiConfig: getClashAPIConfig(s),
-});
-
-export const About = connect(mapState)(AboutImpl);

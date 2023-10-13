@@ -1,1 +1,3 @@
-// const ProxySortingOptions =
+export const ENDPOINT = {
+  config: '/configs',
+};

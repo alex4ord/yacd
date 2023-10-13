@@ -1,7 +1,6 @@
 import * as React from 'react';
-
-import Button from '../Button';
-import { FlexCenter } from '../shared/Styled';
+import Button from 'src/components/Button';
+import { FlexCenter } from 'src/components/shared/Styled';
 
 const { useRef, useEffect } = React;
 
@@ -10,10 +9,7 @@ type Props = {
   onClickSecondaryButton?: () => void;
 };
 
-export function ClosePrevConns({
-  onClickPrimaryButton,
-  onClickSecondaryButton,
-}: Props) {
+export function ClosePrevConns({ onClickPrimaryButton, onClickSecondaryButton }: Props) {
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
   const secondaryButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -21,9 +17,9 @@ export function ClosePrevConns({
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.keyCode === 39) {
+    if (e.code === 'ArrowRight') {
       secondaryButtonRef.current.focus();
-    } else if (e.keyCode === 37) {
+    } else if (e.code === 'ArrowLeft') {
       primaryButtonRef.current.focus();
     }
   };
@@ -33,8 +29,8 @@ export function ClosePrevConns({
     <div onKeyDown={handleKeyDown}>
       <h2>Close Connections?</h2>
       <p>
-        Click "Yes" to close those connections that are still using the old
-        selected proxy in this group
+        Click [Yes] to close those connections that are still using the old selected proxy in this
+        group
       </p>
       <div style={{ height: 30 }} />
       <FlexCenter>

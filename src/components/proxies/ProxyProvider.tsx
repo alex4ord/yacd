@@ -1,107 +1,95 @@
+import { Tooltip } from '@reach/tooltip';
 import { formatDistance } from 'date-fns';
+import { useAtom } from 'jotai';
 import * as React from 'react';
-import { RotateCw, Zap } from 'react-feather';
+import { RotateCw } from 'react-feather';
 import Button from 'src/components/Button';
-import Collapsible from 'src/components/Collapsible';
 import CollapsibleSectionHeader from 'src/components/CollapsibleSectionHeader';
 import { useUpdateProviderItem } from 'src/components/proxies/proxies.hooks';
-import { connect, useStoreActions } from 'src/components/StateProvider';
-import { framerMotionResouce } from 'src/misc/motion';
+import { connect } from 'src/components/StateProvider';
+import { framerMotionResource } from 'src/misc/motion';
 import {
-  getClashAPIConfig,
-  getCollapsibleIsOpen,
-  getHideUnavailableProxies,
-  getProxySortBy,
+  collapsibleIsOpenAtom,
+  hideUnavailableProxiesAtom,
+  proxySortByAtom,
+  useApiConfig,
 } from 'src/store/app';
 import { getDelay, healthcheckProviderByName } from 'src/store/proxies';
-import { DelayMapping } from 'src/store/types';
+import { DelayMapping, State } from 'src/store/types';
+
+import { ZapAnimated } from '$src/components/shared/ZapAnimated';
+import { useState2 } from '$src/hooks/basic';
 
 import { useFilteredAndSorted } from './hooks';
 import { ProxyList, ProxyListSummaryView } from './ProxyList';
 import s from './ProxyProvider.module.scss';
 
-const { useState, useCallback } = React;
+const { useCallback } = React;
 
 type Props = {
   name: string;
-  proxies: Array<string>;
+  proxies: string[];
   delay: DelayMapping;
-  hideUnavailableProxies: boolean;
-  proxySortBy: string;
   type: 'Proxy' | 'Rule';
   vehicleType: 'HTTP' | 'File' | 'Compatible';
   updatedAt?: string;
   dispatch: (x: any) => Promise<any>;
-  isOpen: boolean;
-  apiConfig: any;
 };
 
-function ProxyProviderImpl({
-  name,
-  proxies: all,
-  delay,
-  hideUnavailableProxies,
-  proxySortBy,
-  vehicleType,
-  updatedAt,
-  isOpen,
-  dispatch,
-  apiConfig,
-}: Props) {
-  const proxies = useFilteredAndSorted(
-    all,
-    delay,
-    hideUnavailableProxies,
-    proxySortBy
-  );
-  const [isHealthcheckLoading, setIsHealthcheckLoading] = useState(false);
-
+function ProxyProviderImpl({ name, proxies: all, delay, vehicleType, updatedAt, dispatch }: Props) {
+  const [collapsibleIsOpen, setCollapsibleIsOpen] = useAtom(collapsibleIsOpenAtom);
+  const isOpen = collapsibleIsOpen[`proxyProvider:${name}`];
+  const [proxySortBy] = useAtom(proxySortByAtom);
+  const [hideUnavailableProxies] = useAtom(hideUnavailableProxiesAtom);
+  const apiConfig = useApiConfig();
+  const proxies = useFilteredAndSorted(all, delay, hideUnavailableProxies, proxySortBy);
+  const checkingHealth = useState2(false);
   const updateProvider = useUpdateProviderItem({ dispatch, apiConfig, name });
-
-  const healthcheckProvider = useCallback(async () => {
-    setIsHealthcheckLoading(true);
-    await dispatch(healthcheckProviderByName(apiConfig, name));
-    setIsHealthcheckLoading(false);
-  }, [apiConfig, dispatch, name, setIsHealthcheckLoading]);
-
-  const {
-    app: { updateCollapsibleIsOpen },
-  } = useStoreActions();
-
+  const healthcheckProvider = useCallback(() => {
+    if (checkingHealth.value) return;
+    checkingHealth.set(true);
+    const stop = () => checkingHealth.set(false);
+    dispatch(healthcheckProviderByName(apiConfig, name)).then(stop, stop);
+  }, [apiConfig, dispatch, name, checkingHealth]);
+  const updateCollapsibleIsOpen = useCallback(
+    (prefix: string, name: string, v: boolean) => {
+      setCollapsibleIsOpen((s) => ({ ...s, [`${prefix}:${name}`]: v }));
+    },
+    [setCollapsibleIsOpen],
+  );
   const toggle = useCallback(() => {
     updateCollapsibleIsOpen('proxyProvider', name, !isOpen);
   }, [isOpen, updateCollapsibleIsOpen, name]);
 
   const timeAgo = formatDistance(new Date(updatedAt), new Date());
   return (
-    <div className={s.body}>
-      <CollapsibleSectionHeader
-        name={name}
-        toggle={toggle}
-        type={vehicleType}
-        isOpen={isOpen}
-        qty={proxies.length}
-      />
+    <div className={s.main}>
+      <div className={s.head}>
+        <CollapsibleSectionHeader
+          name={name}
+          toggle={toggle}
+          type={vehicleType}
+          isOpen={isOpen}
+          qty={proxies.length}
+        />
+
+        <div className={s.action}>
+          <Tooltip label={'Update'}>
+            <Button kind="circular" onClick={updateProvider}>
+              <Refresh />
+            </Button>
+          </Tooltip>
+          <Tooltip label={'Health Check'}>
+            <Button kind="circular" onClick={healthcheckProvider}>
+              <ZapAnimated animate={checkingHealth.value} size={16} />
+            </Button>
+          </Tooltip>
+        </div>
+      </div>
       <div className={s.updatedAt}>
         <small>Updated {timeAgo} ago</small>
       </div>
-      {/* @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; isOpen: boolean; }' i... Remove this comment to see the full error message */}
-      <Collapsible isOpen={isOpen}>
-        <ProxyList all={proxies} />
-        <div className={s.actionFooter}>
-          <Button text="Update" start={<Refresh />} onClick={updateProvider} />
-          <Button
-            text="Health Check"
-            start={<Zap size={16} />}
-            onClick={healthcheckProvider}
-            isLoading={isHealthcheckLoading}
-          />
-        </div>
-      </Collapsible>
-      {/* @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; isOpen: boolean; }' is ... Remove this comment to see the full error message */}
-      <Collapsible isOpen={!isOpen}>
-        <ProxyListSummaryView all={proxies} />
-      </Collapsible>
+      {isOpen ? <ProxyList all={proxies} /> : <ProxyListSummaryView all={proxies} />}
     </div>
   );
 }
@@ -115,7 +103,7 @@ const arrow = {
   hover: { rotate: 360, transition: { duration: 0.3 } },
 };
 function Refresh() {
-  const module = framerMotionResouce.read();
+  const module = framerMotionResource.read();
   const motion = module.motion;
   return (
     <motion.div
@@ -132,21 +120,11 @@ function Refresh() {
   );
 }
 
-const mapState = (s, { proxies, name }) => {
-  const hideUnavailableProxies = getHideUnavailableProxies(s);
+const mapState = (s: State, { proxies }) => {
   const delay = getDelay(s);
-  const collapsibleIsOpen = getCollapsibleIsOpen(s);
-  const apiConfig = getClashAPIConfig(s);
-
-  const proxySortBy = getProxySortBy(s);
-
   return {
-    apiConfig,
     proxies,
     delay,
-    hideUnavailableProxies,
-    proxySortBy,
-    isOpen: collapsibleIsOpen[`proxyProvider:${name}`],
   };
 };
 

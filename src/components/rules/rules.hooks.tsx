@@ -1,25 +1,25 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAtom } from 'jotai';
 import * as React from 'react';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
-import { useRecoilState } from 'recoil';
 import {
   fetchRuleProviders,
   refreshRuleProviderByName,
   updateRuleProviders,
 } from 'src/api/rule-provider';
 import { fetchRules } from 'src/api/rules';
-import { ruleFilterText } from 'src/store/rules';
+import { ruleFilterTextAtom } from 'src/store/rules';
 import type { ClashAPIConfig } from 'src/types';
 
 const { useCallback } = React;
 
 export function useUpdateRuleProviderItem(
   name: string,
-  apiConfig: ClashAPIConfig
+  apiConfig: ClashAPIConfig,
 ): [(ev: React.MouseEvent<HTMLButtonElement>) => unknown, boolean] {
   const queryClient = useQueryClient();
   const { mutate, isLoading } = useMutation(refreshRuleProviderByName, {
     onSuccess: () => {
-      queryClient.invalidateQueries('/providers/rules');
+      queryClient.invalidateQueries(['/providers/rules']);
     },
   });
   const onClickRefreshButton = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -30,13 +30,13 @@ export function useUpdateRuleProviderItem(
 }
 
 export function useUpdateAllRuleProviderItems(
-  apiConfig: ClashAPIConfig
+  apiConfig: ClashAPIConfig,
 ): [(ev: React.MouseEvent<HTMLButtonElement>) => unknown, boolean] {
   const queryClient = useQueryClient();
   const { data: provider } = useRuleProviderQuery(apiConfig);
   const { mutate, isLoading } = useMutation(updateRuleProviders, {
     onSuccess: () => {
-      queryClient.invalidateQueries('/providers/rules');
+      queryClient.invalidateQueries(['/providers/rules']);
     },
   });
   const onClickRefreshButton = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -49,24 +49,19 @@ export function useUpdateAllRuleProviderItems(
 export function useInvalidateQueries() {
   const queryClient = useQueryClient();
   return useCallback(() => {
-    queryClient.invalidateQueries('/rules');
-    queryClient.invalidateQueries('/providers/rules');
+    queryClient.invalidateQueries(['/rules']);
+    queryClient.invalidateQueries(['/providers/rules']);
   }, [queryClient]);
 }
 
 export function useRuleProviderQuery(apiConfig: ClashAPIConfig) {
-  return useQuery(['/providers/rules', apiConfig], () =>
-    fetchRuleProviders('/providers/rules', apiConfig)
-  );
+  return useQuery(['/providers/rules', apiConfig], fetchRuleProviders);
 }
 
 export function useRuleAndProvider(apiConfig: ClashAPIConfig) {
-  const { data: rules, isFetching } = useQuery(['/rules', apiConfig], () =>
-    fetchRules('/rules', apiConfig)
-  );
+  const { data: rules, isFetching } = useQuery(['/rules', apiConfig], fetchRules);
   const { data: provider } = useRuleProviderQuery(apiConfig);
-
-  const [filterText] = useRecoilState(ruleFilterText);
+  const [filterText] = useAtom(ruleFilterTextAtom);
   if (filterText === '') {
     return { rules, provider, isFetching };
   } else {

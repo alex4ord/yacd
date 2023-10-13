@@ -1,26 +1,31 @@
-import React from 'react';
+import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { areEqual, VariableSizeList } from 'react-window';
-import { RuleProviderItem } from 'src/components/rules/RuleProviderItem';
-import { useRuleAndProvider } from 'src/components/rules/rules.hooks';
-import { RulesPageFab } from 'src/components/rules/RulesPageFab';
-import { TextFilter } from 'src/components/shared/TextFitler';
-import { ruleFilterText } from 'src/store/rules';
-import { State } from 'src/store/types';
-import { ClashAPIConfig } from 'src/types';
+
+import { RuleProviderItem } from '$src/components/rules/RuleProviderItem';
+import { useRuleAndProvider } from '$src/components/rules/rules.hooks';
+import { RulesPageFab } from '$src/components/rules/RulesPageFab';
+import { TextFilter } from '$src/components/shared/TextFilter';
+import { useApiConfig } from '$src/store/app';
+import { ruleFilterTextAtom } from '$src/store/rules';
+import { ClashAPIConfig, RuleType } from '$src/types';
 
 import useRemainingViewPortHeight from '../hooks/useRemainingViewPortHeight';
-import { getClashAPIConfig } from '../store/app';
-import ContentHeader from './ContentHeader';
+import { ContentHeader } from './ContentHeader';
 import Rule from './Rule';
 import s from './Rules.module.scss';
-import { connect } from './StateProvider';
 
 const { memo } = React;
 
 const paddingBottom = 30;
 
-function itemKey(index: number, { rules, provider }) {
+type ItemData = {
+  rules: any[];
+  provider: any;
+  apiConfig: ClashAPIConfig;
+};
+
+function itemKey(index: number, { rules, provider }: ItemData) {
   const providerQty = provider.names.length;
 
   if (index < providerQty) {
@@ -35,15 +40,24 @@ function getItemSizeFactory({ provider }) {
     const providerQty = provider.names.length;
     if (idx < providerQty) {
       // provider
-      return 90;
+      return 110;
     }
     // rule
     return 80;
   };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type '{ childre... Remove this comment to see the full error message
-const Row = memo(({ index, style, data }) => {
+type RowProps = {
+  index: number;
+  style: React.CSSProperties;
+  data: {
+    apiConfig: ClashAPIConfig;
+    rules: RuleType[];
+    provider: { names: string[]; byName: any };
+  };
+};
+
+const Row = memo(({ index, style, data }: RowProps) => {
   const { rules, provider, apiConfig } = data;
   const providerQty = provider.names.length;
 
@@ -65,17 +79,10 @@ const Row = memo(({ index, style, data }) => {
   );
 }, areEqual);
 
-const mapState = (s: State) => ({
-  apiConfig: getClashAPIConfig(s),
-});
+Row.displayName = 'MemoRow';
 
-export default connect(mapState)(Rules);
-
-type RulesProps = {
-  apiConfig: ClashAPIConfig;
-};
-
-function Rules({ apiConfig }: RulesProps) {
+export default function Rules() {
+  const apiConfig = useApiConfig();
   const [refRulesContainer, containerHeight] = useRemainingViewPortHeight();
   const { rules, provider } = useRuleAndProvider(apiConfig);
   const getItemSize = getItemSizeFactory({ provider });
@@ -86,12 +93,10 @@ function Rules({ apiConfig }: RulesProps) {
     <div>
       <div className={s.header}>
         <ContentHeader title={t('Rules')} />
-        <TextFilter placeholder="Filter" textAtom={ruleFilterText} />
+        <TextFilter placeholder="Filter" textAtom={ruleFilterTextAtom} />
       </div>
-      {/* @ts-expect-error ts-migrate(2322) FIXME: Type 'number | MutableRefObject<any>' is not assig... Remove this comment to see the full error message */}
       <div ref={refRulesContainer} style={{ paddingBottom }}>
         <VariableSizeList
-          // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
           height={containerHeight - paddingBottom}
           width="100%"
           itemCount={rules.length + provider.names.length}
